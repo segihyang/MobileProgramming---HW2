@@ -14,8 +14,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,25 +33,43 @@ import com.example.hw2_potato.model.CheckState
 fun PotatoImage(modifier: Modifier = Modifier) {
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
-    val checkStates = remember {
-        listOf(
-            CheckState("arms", R.drawable.arms, mutableStateOf(true)),
-            CheckState("ears", R.drawable.ears, mutableStateOf(true)),
-            CheckState("eyebrows", R.drawable.eyebrows, mutableStateOf(true)),
-            CheckState("eyes", R.drawable.eyes, mutableStateOf(true)),
-            CheckState("glasses", R.drawable.glasses, mutableStateOf(true)),
-            CheckState("hat", R.drawable.hat, mutableStateOf(true)),
-            CheckState("mouth", R.drawable.mouth, mutableStateOf(true)),
-            CheckState("mustache", R.drawable.mustache, mutableStateOf(true)),
-            CheckState("nose", R.drawable.nose, mutableStateOf(true)),
-            CheckState("shoes", R.drawable.shoes, mutableStateOf(true))
+
+    val checkStates = rememberSaveable(
+        saver = listSaver(
+            save = { list ->
+                list.map { listOf(it.name, it.resId.toString(), it.isVisible.toString()) }
+            },
+            restore = { restoredList ->
+                mutableStateListOf<CheckState>().apply {
+                    restoredList.forEach { item ->
+                        val name = item[0]
+                        val resId = item[1].toInt()
+                        val isVisible = item[2].toBoolean()
+                        add(CheckState(name, resId, isVisible))
+                    }
+                }
+            }
+        )
+    ) {
+        mutableStateListOf(
+            CheckState("arms", R.drawable.arms, true),
+            CheckState("ears", R.drawable.ears, true),
+            CheckState("eyebrows", R.drawable.eyebrows, true),
+            CheckState("eyes", R.drawable.eyes, true),
+            CheckState("glasses", R.drawable.glasses, true),
+            CheckState("hat", R.drawable.hat, true),
+            CheckState("mouth", R.drawable.mouth, true),
+            CheckState("mustache", R.drawable.mustache, true),
+            CheckState("nose", R.drawable.nose, true),
+            CheckState("shoes", R.drawable.shoes, true)
         )
     }
     if (isPortrait) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(16.dp)
+                ,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
@@ -63,7 +82,7 @@ fun PotatoImage(modifier: Modifier = Modifier) {
                     contentDescription = "body"
                 )
                 checkStates.forEach { checkState ->
-                    if (checkState.state.value) {
+                    if (checkState.isVisible) {
                         Image(
                             painter = painterResource(id = checkState.resId),
                             contentDescription = checkState.name
@@ -86,8 +105,13 @@ fun PotatoImage(modifier: Modifier = Modifier) {
                         columParts.forEach { checkState ->
                             PotatoCheckBox(
                                 label = checkState.name,
-                                checked = checkState.state.value,
-                                onCheckedChange = { checkState.state.value = it })
+                                checked = checkState.isVisible,
+                                onCheckedChange = {
+                                    val index = checkStates.indexOf(checkState)
+                                    if (index != -1){
+                                        checkStates[index]= checkState.copy(isVisible = it) }
+                                    }
+                            )
                         }
                     }
                 }
@@ -103,7 +127,8 @@ fun PotatoImage(modifier: Modifier = Modifier) {
         }
         Row(modifier = Modifier
             .fillMaxHeight()
-            .padding(16.dp),
+            .padding(12.dp)
+            ,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -116,7 +141,7 @@ fun PotatoImage(modifier: Modifier = Modifier) {
                     contentDescription = "body"
                 )
                 checkStates.forEach { checkState ->
-                    if (checkState.state.value) {
+                    if (checkState.isVisible) {
                         Image(
                             painter = painterResource(id = checkState.resId),
                             contentDescription = checkState.name
@@ -130,13 +155,18 @@ fun PotatoImage(modifier: Modifier = Modifier) {
                     .height(260.dp)
                     .padding(horizontal = 12.dp)
             ) {
-                checkStates.chunked(5).forEach { columParts ->
+                checkStates.chunked(5).forEach {columParts ->
                     Column(modifier = Modifier.weight(1f)) {
                         columParts.forEach { checkState ->
                             PotatoCheckBox(
                                 label = checkState.name,
-                                checked = checkState.state.value,
-                                onCheckedChange = { checkState.state.value = it })
+                                checked = checkState.isVisible,
+                                onCheckedChange = {
+                                    val index = checkStates.indexOf(checkState)
+                                    if (index != -1){
+                                        checkStates[index]= checkState.copy(isVisible = it) }
+                                }
+                            )
                         }
                     }
                 }
